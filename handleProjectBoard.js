@@ -14,7 +14,11 @@ async function getProject(octokit, owner, repo, id) {
 }
 
 async function getColumnForIssue(octokit, project, payload, columnByLabel) {
-  console.log(payload);
+  var targetColumnName = '';
+  payload.issue.labels.forEach((label, i) => {
+    console.log(label)
+  });
+
   // var columnList = await octokit.projects.listForRepo({owner, repo});
 }
 

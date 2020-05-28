@@ -32,6 +32,7 @@ let handler = function(token, owner, repo, id) {
     throw new Error('invalid project id');
   }
   return new Promise(async(resolve, reject) => {
+    console.log(token)
     const octokit = new github.GitHub(token);
     try {
       const project = await getProject(octokit, owner, repo, id);

@@ -72,15 +72,15 @@ async function getCardForIssue(octokit, project, payload, targetColumnId, ignore
     }
   }
   if (!targetCard) {
-    console.log(`No card for issue ${issueId} in project, nothing to do`);
+    console.log(`No card for issue #${issueNum} in project, nothing to do`);
     return;
   }
   if (currentColumnId == targetColumnId) {
-    console.log(`Card for issue ${issueId} already in target column, nothing to do`);
+    console.log(`Card for issue #${issueNum} already in target column, nothing to do`);
     return;
   }
   if (Array.isArray(ignoreColumnNames) && ignoreColumnNames.includes(currentColumnName)) {
-    console.log(`Card for issue ${issueId} is in column marked to ignore, nothing to do`);
+    console.log(`Card for issue #${issueNum} is in column marked to ignore, nothing to do`);
     return;
   }
   return targetCard.id;
@@ -135,12 +135,13 @@ async function handleIssueOpened(octokit, project, payload, columnByLabel) {
 
 async function handleIssueLabeled(octokit, project, payload, columnByLabel, ignoreColumnNames) {
   var issueId = payload.issue.id;
+  var issueNum = payload.issue.number;
   if (!issueId) {
     throw new Error('invalid context: no issue ID');
   }
   var columnId = await getColumnForIssue(octokit, project, payload, columnByLabel, false);
   if (!columnId) {
-    console.log(`Issue ${issueId} has no target column to move to, nothing to do`);
+    console.log(`Issue #${issueNum} has no target column to move to, nothing to do`);
     return;
   }
   var cardId = await getCardForIssue(octokit, project, payload, columnId, ignoreColumnNames);

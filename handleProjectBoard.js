@@ -133,7 +133,7 @@ async function handleIssueOpened(octokit, project, payload, columnByLabel) {
   });
 }
 
-async function handleIssueLabeled(octokit, project, payload, columnByLabel) {
+async function handleIssueLabeled(octokit, project, payload, columnByLabel, ignoreColumnNames) {
   var issueId = payload.issue.id;
   if (!issueId) {
     throw new Error('invalid context: no issue ID');
@@ -143,7 +143,7 @@ async function handleIssueLabeled(octokit, project, payload, columnByLabel) {
     console.log(`Issue ${issueId} has no target column to move to, nothing to do`);
     return;
   }
-  var cardId = await getCardForIssue(octokit, project, payload, columnId);
+  var cardId = await getCardForIssue(octokit, project, payload, columnId, ignoreColumnNames);
   if (!cardId) {
     return;
   }
@@ -155,7 +155,7 @@ async function handleIssueLabeled(octokit, project, payload, columnByLabel) {
   });
 }
 
-let handler = function(token, owner, repo, id, columnByLabelStr) {
+let handler = function(token, owner, repo, id, columnByLabelStr, ignoreColumnNamesStr) {
   if (typeof(token) !== 'string' || token.length != 40) {
     throw new Error('invalid token');
   }
@@ -171,6 +171,10 @@ let handler = function(token, owner, repo, id, columnByLabelStr) {
   var columnByLabel = {};
   if (typeof(columnByLabelStr) == 'string' && columnByLabelStr.length) {
     columnByLabel = JSON.parse(columnByLabelStr);
+  }
+  var ignoreColumnNames = {};
+  if (typeof(ignoreColumnNamesStr) == 'string' && ignoreColumnNamesStr.length) {
+    ignoreColumnNames = ignoreColumnNamesStr.split(',')
   }
   return new Promise(async(resolve, reject) => {
     const octokit = new github.GitHub(token);
@@ -195,7 +199,7 @@ let handler = function(token, owner, repo, id, columnByLabelStr) {
         if (context.payload.action == 'labeled') {
           console.log('triggered by label add')
           try {
-            handleIssueLabeled(octokit, project, context.payload, columnByLabel);
+            handleIssueLabeled(octokit, project, context.payload, columnByLabel, ignoreColumnNames);
             resolve("done!");
           } catch (e) {
             reject(e);

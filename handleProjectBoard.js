@@ -2,7 +2,10 @@ const core = require('@actions/core');
 const github = require("@actions/github");
 
 async function getProject(octokit, owner, repo, id) {
-  var projectList = await octokit.projects.listForRepo({owner, repo});
+  var projectList = await octokit.projects.listForRepo({
+    owner,
+    repo
+  });
   if (projectList.status != 200) {
     throw new Error('insufficient access privilege to fetch project data, check owner/repo');
   }
@@ -16,10 +19,14 @@ async function getProject(octokit, owner, repo, id) {
 async function getColumnForIssue(octokit, project, payload, columnByLabel) {
   var targetColumnName = '';
   payload.issue.labels.forEach((label, i) => {
-    console.log(label)
+    if (columnByLabel[label.name]) {
+      targetColumnName = columnByLabel[label.name];
+    }
   });
-
-  // var columnList = await octokit.projects.listForRepo({owner, repo});
+  var columnList = await octokit.projects.listColumns({
+    project_id: project.id
+  });
+  console.log(columnList)
 }
 
 async function handleIssueOpened(octokit, project, payload, columnByLabel) {

@@ -18,11 +18,12 @@ async function getProject(octokit, owner, repo, id) {
 
 async function getColumnForIssue(octokit, project, payload, columnByLabel, defaultToFirst = true) {
   var targetColumnName = '';
-  payload.issue.labels.forEach(label => {
+  for (const label of payload.issue.labels) {
     if (columnByLabel[label.name]) {
       targetColumnName = columnByLabel[label.name];
+      break;
     }
-  });
+  }
   var columnList = await octokit.projects.listColumns({
     project_id: project.id
   });
@@ -52,22 +53,21 @@ async function getCardForIssue(octokit, project, payload, targetColumnId) {
     throw new Error('error fetching columns, check if project board is set up properly');
   }
   var targetCard;
-  columnList.data.forEach((column) => {
-    if (targetCard) {
-      return;
-    }
+  for (const column of columnList.data) {
     var cardList = await octokit.projects.listCards({
       column_id: column.id
     });
-    cardList.data.forEach((card) => {
-      if (targetCard) {
-        return;
-      }
+    for (const card of cardList.data) {
       if (card.content_id == issueId) {
-        targetCard = card;
+        targetCard = card
+        break;
       }
-    });
-  });
+    }
+    if (targetCard) {
+      break;
+    }
+  }
+
   if (!targetCard) {
     console.log(`Issue ${issueId} not in project, nothing to do`);
     return;

@@ -26,7 +26,7 @@ async function getColumnForIssue(octokit, project, payload, columnByLabel) {
   var columnList = await octokit.projects.listColumns({
     project_id: project.id
   });
-  if (!projectList.data.length) {
+  if (!columnList.data.length) {
     throw new Error('error fetching columns, check if project board is set up properly');
   }
   if (targetColumnName) {

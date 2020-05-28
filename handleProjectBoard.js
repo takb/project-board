@@ -1,3 +1,4 @@
+import * as Webhooks from '@octokit/webhooks';
 const core = require('@actions/core');
 const github = require("@actions/github");
 
@@ -16,7 +17,10 @@ let handler = function(token, owner, repo, id) {
   }
   return new Promise(async(resolve, reject) => {
     const context = github.context;
-    core.setOutput('context', context);
+    if (github.context.eventName === 'opened') {
+      const payload = github.context.payload as Webhooks.WebhookPayloadIssues;
+      core.info(`The head commit is: ${payload}`)
+    }
     try {
       const octokit = new github.GitHub(token);
       var projectList = await octokit.projects.listForRepo({owner, repo});

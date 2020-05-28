@@ -18,7 +18,7 @@ async function getProject(octokit, owner, repo, id) {
 
 async function getColumnForIssue(octokit, project, payload, columnByLabel) {
   var targetColumnName = '';
-  payload.issue.labels.forEach((label, i) => {
+  payload.issue.labels.forEach(label => {
     if (columnByLabel[label.name]) {
       targetColumnName = columnByLabel[label.name];
     }
@@ -26,20 +26,35 @@ async function getColumnForIssue(octokit, project, payload, columnByLabel) {
   var columnList = await octokit.projects.listColumns({
     project_id: project.id
   });
-  console.log(columnList.data)
+  if (!projectList.data.length) {
+    throw new Error('error fetching columns, check if project board is set up properly');
+  }
+  if (targetColumnName) {
+    var targetColumnId = columnList.data.find(e => e.name == targetColumnName).id;
+    if (targetColumnId) {
+      return targetColumnId;
+    } else {
+      console.log(`WARNING: column name '${targetColumnName}' not found in project, adding to default`);
+    }
+  }
+  return columnList.data[0].id;
 }
 
 async function handleIssueOpened(octokit, project, payload, columnByLabel) {
   var issueId = payload.issue.id;
-  var columnId = await getColumnForIssue(octokit, project, payload, columnByLabel);
-  if (issueId && columnId) {
-    console.log(`Adding issue ${issueId} to column ${columnId}`);
-    await octokit.projects.createCard({
-        column_id: columnId,
-        content_id: issueId,
-        content_type: "Issue"
-    });
+  if (!issueId) {
+    throw new Error('invalid context: no issue ID');
   }
+  var columnId = await getColumnForIssue(octokit, project, payload, columnByLabel);
+  if (!columnId) {
+    throw new Error('invalid project setup: no default column');
+  }
+  console.log(`Adding issue ${issueId} to column ${columnId}`);
+  await octokit.projects.createCard({
+      column_id: columnId,
+      content_id: issueId,
+      content_type: "Issue"
+  });
 }
 
 let handler = function(token, owner, repo, id, columnByLabelStr) {

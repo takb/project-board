@@ -1,19 +1,18 @@
 const core = require('@actions/core');
-const wait = require('./wait');
+const handler = require('./handleProjectBoard');
 
-
-// most @actions toolkit packages have async methods
 async function run() {
-  try { 
-    const ms = core.getInput('milliseconds');
-    console.log(`Waiting ${ms} milliseconds ...`)
-
-    core.debug((new Date()).toTimeString())
-    await wait(parseInt(ms));
-    core.debug((new Date()).toTimeString())
-
-    core.setOutput('time', new Date().toTimeString());
-  } 
+  try {
+    const token = core.getInput('token');
+    const owner = core.getInput('owner');
+    const repo = core.getInput('repo');
+    const project = core.getInput('project');
+    const start = new Date();
+    core.debug('calling handler');
+    await handler(token, owner, repo, project);
+    var delta = Math.abs(new Date() - start);
+    core.debug(`handler returned in ${delta} ms`);
+  }
   catch (error) {
     core.setFailed(error.message);
   }

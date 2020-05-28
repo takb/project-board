@@ -1,13 +1,18 @@
-name: 'Wait'
-description: 'Wait a designated number of milliseconds'
+name: 'Project board handler'
+description: 'Handle issues and PRs in the project board'
 inputs:
-  milliseconds:  # id of input
-    description: 'number of milliseconds to wait'
+  token:
+    description: 'Token for the repo with repo permissions'
     required: true
-    default: '1000'
-outputs:
-  time: # output will be available to future steps 
-    description: 'The message to output'
+  owner:
+    description: 'The owner of the project'
+    required: true
+  repo:
+    description: 'The repo of the project'
+    required: true
+  project:
+    description: 'The number of the project'
+    required: true
 runs:
   using: 'node12'
-  main: 'dist/index.js'
+  main: 'index.js'

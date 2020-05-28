@@ -26,7 +26,7 @@ async function getColumnForIssue(octokit, project, payload, columnByLabel) {
   var columnList = await octokit.projects.listColumns({
     project_id: project.id
   });
-  console.log(columnList)
+  console.log(targetColumnName, columnList)
 }
 
 async function handleIssueOpened(octokit, project, payload, columnByLabel) {

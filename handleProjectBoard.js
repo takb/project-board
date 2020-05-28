@@ -16,7 +16,7 @@ async function getProject(octokit, owner, repo, id) {
   return project;
 }
 
-async function getColumnForIssue(octokit, project, payload, columnByLabel) {
+async function getColumnForIssue(octokit, project, payload, columnByLabel, defaultToFirst = true) {
   var targetColumnName = '';
   payload.issue.labels.forEach(label => {
     if (columnByLabel[label.name]) {
@@ -37,7 +37,44 @@ async function getColumnForIssue(octokit, project, payload, columnByLabel) {
       console.log(`WARNING: column name '${targetColumnName}' not found in project, adding to default`);
     }
   }
-  return columnList.data[0].id;
+  return defaultToFirst ? columnList.data[0].id : 0;
+}
+
+async function getCardForIssue(octokit, project, payload, targetColumnId) {
+  var issueId = payload.issue.id;
+  if (!issueId) {
+    throw new Error('invalid context: no issue ID');
+  }
+  var columnList = await octokit.projects.listColumns({
+    project_id: project.id
+  });
+  if (!columnList.data.length) {
+    throw new Error('error fetching columns, check if project board is set up properly');
+  }
+  var targetCard;
+  columnList.data.forEach((column) => {
+    if (targetCard) {
+      return;
+    }
+    var cardList = await octokit.projects.listCards({
+      column_id: column.id
+    });
+    cardList.data.forEach((card) => {
+      if (targetCard) {
+        return;
+      }
+      if (card.content_id == issueId) {
+        targetCard = card;
+      }
+    });
+  });
+  if (!targetCard) {
+    console.log(`Issue ${issueId} not in project, nothing to do`);
+    return;
+  }
+
+  console.log(targetCard)
+  return;
 }
 
 async function handleIssueOpened(octokit, project, payload, columnByLabel) {
@@ -62,11 +99,16 @@ async function handleIssueLabeled(octokit, project, payload, columnByLabel) {
   if (!issueId) {
     throw new Error('invalid context: no issue ID');
   }
-  var columnId = await getColumnForIssue(octokit, project, payload, columnByLabel);
+  var columnId = await getColumnForIssue(octokit, project, payload, columnByLabel, false);
   if (!columnId) {
-    throw new Error('invalid project setup: no default column');
+    console.log(`Issue ${issueId} has no target column to move to, nothing to do`);
+    return;
   }
-  console.log(`Moving issue ${issueId} to column ${columnId}`);
+  var cardId = await getCardForIssue(octokit, project, payload, columnId);
+  if (!cardId) {
+    return;
+  }
+  console.log(`Moving issue ${cardId} to column ${columnId}`);
   // await octokit.projects.createCard({
   //     column_id: columnId,
   //     content_id: issueId,

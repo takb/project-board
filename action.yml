@@ -13,6 +13,9 @@ inputs:
   project:
     description: 'The number of the project'
     required: true
+  columnbylabel:
+    description: 'The destination Column by label, JSON format: {":bug: bug": "Urgent"}'
+    required: true
 runs:
   using: 'node12'
   main: 'index.js'

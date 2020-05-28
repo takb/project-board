@@ -17,10 +17,8 @@ let handler = function(token, owner, repo, id) {
   }
   return new Promise(async(resolve, reject) => {
     const context = github.context;
-    if (github.context.eventName === 'opened') {
-      const payload = github.context.payload as Webhooks.WebhookPayloadIssues;
-      core.info(`The head commit is: ${payload}`)
-    }
+    console.log(context.eventName)
+    console.log(context.payload)
     try {
       const octokit = new github.GitHub(token);
       var projectList = await octokit.projects.listForRepo({owner, repo});

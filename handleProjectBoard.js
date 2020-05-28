@@ -79,7 +79,7 @@ async function getCardForIssue(octokit, project, payload, targetColumnId, ignore
     console.log(`Card for issue ${issueId} already in target column, nothing to do`);
     return;
   }
-  if (Array.isArray(ignoreColumnNames) && ignoreColumnNames.includes(targetColumnName)) {
+  if (Array.isArray(ignoreColumnNames) && ignoreColumnNames.includes(currentColumnName)) {
     console.log(`Card for issue ${issueId} is in column marked to ignore, nothing to do`);
     return;
   }

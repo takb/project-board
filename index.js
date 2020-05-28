@@ -7,9 +7,10 @@ async function run() {
     const owner = core.getInput('owner');
     const repo = core.getInput('repo');
     const project = core.getInput('project');
+    const columnByLabelStr = core.getInput('columnbylabel');
     const start = new Date();
     core.debug('calling handler');
-    await handler(token, owner, repo, project);
+    await handler(token, owner, repo, project, columnByLabelStr);
     var delta = Math.abs(new Date() - start);
     core.debug(`handler returned in ${delta} ms`);
   }

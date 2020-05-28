@@ -2,22 +2,35 @@ const core = require('@actions/core');
 const github = require("@actions/github");
 
 async function getProject(octokit, owner, repo, id) {
-  const projectList = await octokit.projects.listForRepo({owner, repo});
+  var projectList = await octokit.projects.listForRepo({owner, repo});
   if (projectList.status != 200) {
     throw new Error('insufficient access privilege to fetch project data, check owner/repo');
   }
-  const project = projectList.data.find(e => e.number == id);
+  var project = projectList.data.find(e => e.number == id);
   if (!project) {
     throw new Error('failed to fetch project data, check project id');
   }
   return project;
 }
 
-async function handleIssueOpened(octokit, project, payload) {
-  console.log('target project id: '+project.id);
+async function getColumnForIssue(octokit, project, payload, columnByLabel) {
+  // var columnList = await octokit.projects.listForRepo({owner, repo});
 }
 
-let handler = function(token, owner, repo, id) {
+async function handleIssueOpened(octokit, project, payload, columnByLabel) {
+  var issueId = payload.issue.id;
+  var columnId = await getColumnForIssue(octokit, project, payload, columnByLabel);
+  if (issueId && columnId) {
+    console.log(`Adding issue ${issueId} to column ${columnId}`);
+    await octokit.projects.createCard({
+        column_id: columnId,
+        content_id: issueId,
+        content_type: "Issue"
+    });
+  }
+}
+
+let handler = function(token, owner, repo, id, columnByLabelStr) {
   if (typeof(token) !== 'string' || token.length != 40) {
     throw new Error('invalid token');
   }
@@ -30,20 +43,24 @@ let handler = function(token, owner, repo, id) {
   if (typeof(id) !== 'string' || !id.length) {
     throw new Error('invalid project id');
   }
+  if (typeof(columnByLabelStr) == 'string' && columnByLabelStr.length) {
+    var columnByLabel = JSON.parse(columnByLabelStr);
+  }
   return new Promise(async(resolve, reject) => {
     const octokit = new github.GitHub(token);
     try {
-      const project = await getProject(octokit, owner, repo, id);
+      var project = await getProject(octokit, owner, repo, id);
     } catch (e) {
       reject(e);
     }
-    context = github.context;
+    const context = github.context;
+    // const context = {eventName: 'issues', payload: {action: 'opened', issue: {id: 123}}};
     switch (context.eventName) {
       case 'issues':
         if (context.payload.action == 'opened') {
           console.log('triggered by new issue')
           try {
-            await handleIssueOpened(octokit, project, context.payload);
+            await handleIssueOpened(octokit, project, context.payload, columnByLabel);
             resolve("done!");
           } catch (e) {
             reject(e);
@@ -52,7 +69,7 @@ let handler = function(token, owner, repo, id) {
         if (context.payload.action == 'labeled') {
           console.log('triggered by label add')
           try {
-            handleIssueLabeled(octokit, project, context.payload);
+            handleIssueLabeled(octokit, project, context.payload, columnByLabel);
             resolve("done!");
           } catch (e) {
             reject(e);

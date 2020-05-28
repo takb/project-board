@@ -36,10 +36,10 @@ let handler = function(token, owner, repo, id) {
       const project = await getProject(octokit, owner, repo, id);
     } catch (e) {
       reject(e);
-      console.log('target project id: '+project.id);
     }
     context = github.context;
     switch (context.eventName) {
+      case undefined:
       case 'issues':
         if (context.payload.action == 'opened') {
           console.log('triggered by new issue')

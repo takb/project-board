@@ -41,7 +41,7 @@ async function getColumnForIssue(octokit, project, payload, columnByLabel, defau
   return defaultToFirst ? columnList.data[0].id : 0;
 }
 
-async function getCardForIssue(octokit, project, payload, targetColumnId) {
+async function getCardForIssue(octokit, project, payload, targetColumnId, ignoreColumnNames) {
   var issueNum = payload.issue.number;
   if (!issueNum) {
     throw new Error('invalid context: no issue number');
@@ -53,13 +53,17 @@ async function getCardForIssue(octokit, project, payload, targetColumnId) {
     throw new Error('error fetching columns, check if project board is set up properly');
   }
   var targetCard;
+  var currentColumnId;
+  var currentColumnName;
   for (const column of columnList.data) {
     var cardList = await octokit.projects.listCards({
       column_id: column.id
     });
     for (const card of cardList.data) {
       if (card.content_url.substring(card.content_url.lastIndexOf('/')+1) == issueNum) {
-        targetCard = card
+        targetCard = card;
+        currentColumnId = column.id;
+        currentColumnName = column.name;
         break;
       }
     }
@@ -67,14 +71,40 @@ async function getCardForIssue(octokit, project, payload, targetColumnId) {
       break;
     }
   }
-
   if (!targetCard) {
-    console.log(`Issue ${issueId} not in project, nothing to do`);
+    console.log(`No card for issue ${issueId} in project, nothing to do`);
     return;
   }
+  if (currentColumnId == targetColumnId) {
+    console.log(`Card for issue ${issueId} already in target column, nothing to do`);
+    return;
+  }
+  if (Array.isArray(ignoreColumnNames) && ignoreColumnNames.includes(targetColumnName)) {
+    console.log(`Card for issue ${issueId} is in column marked to ignore, nothing to do`);
+    return;
+  }
+  return targetCard.id;
+}
 
-  console.log(targetCard)
-  return;
+async function getCardForIssueAndColumn(octokit, issueNum, columnId) {
+  if (!issueNum) {
+    throw new Error('invalid call: no issue number');
+  }
+  if (!columnId) {
+    throw new Error('invalid call: no column id');
+  }
+  var cardList = await octokit.projects.listCards({
+    column_id: columnId
+  });
+  if (!cardList.data.length) {
+    return 0;
+  }
+  for (const card of cardList.data) {
+    if (card.content_url.substring(card.content_url.lastIndexOf('/')+1) == issueNum) {
+      return card.id;
+    }
+  }
+  return 0;
 }
 
 async function handleIssueOpened(octokit, project, payload, columnByLabel) {
@@ -88,9 +118,18 @@ async function handleIssueOpened(octokit, project, payload, columnByLabel) {
   }
   console.log(`Adding issue ${issueId} to column ${columnId}`);
   await octokit.projects.createCard({
-      column_id: columnId,
-      content_id: issueId,
-      content_type: "Issue"
+    column_id: columnId,
+    content_id: issueId,
+    content_type: "Issue"
+  });
+  var issueNum = payload.issue.number;
+  if (!issueNum) {
+    throw new Error('invalid context: no issue number');
+  }
+  var cardId = await getCardForIssueAndColumn(octokit, issueNum, columnId);
+  await octokit.projects.moveCard({
+    card_id: cardId,
+    position: "top"
   });
 }
 
@@ -108,12 +147,12 @@ async function handleIssueLabeled(octokit, project, payload, columnByLabel) {
   if (!cardId) {
     return;
   }
-  console.log(`Moving issue ${cardId} to column ${columnId}`);
-  // await octokit.projects.createCard({
-  //     column_id: columnId,
-  //     content_id: issueId,
-  //     content_type: "Issue"
-  // });
+  console.log(`Moving card ${cardId} to column ${columnId}`);
+  await octokit.projects.moveCard({
+    card_id: cardId,
+    column_id: columnId,
+    position: "top"
+  });
 }
 
 let handler = function(token, owner, repo, id, columnByLabelStr) {

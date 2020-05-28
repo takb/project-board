@@ -16,7 +16,7 @@ let handler = function(token, owner, repo, id) {
   }
   return new Promise(async(resolve, reject) => {
     const context = github.context;
-    console.log(context);
+    core.setOutput('context', context);
     try {
       const octokit = new github.GitHub(token);
       var projectList = await octokit.projects.listForRepo({owner, repo});

@@ -15,6 +15,7 @@ async function getProject(octokit, owner, repo, id) {
 
 async function handleIssueOpened(octokit, project, payload) {
   console.log(payload);
+  console.log(project);
 }
 
 let handler = function(token, owner, repo, id) {

@@ -1,16 +1,19 @@
 const core = require('@actions/core');
 const github = require("@actions/github");
 
-async function handleIssueOpened(token, owner, repo, id, payload) {
-  const octokit = new github.GitHub(token);
-  var projectList = await octokit.projects.listForRepo({owner, repo});
+async function getProject(octokit, owner, repo, id) {
+  const projectList = await octokit.projects.listForRepo({owner, repo});
   if (projectList.status != 200) {
     throw new Error('insufficient access privilege to fetch project data, check owner/repo');
   }
-  var project = projectList.data.find(e => e.number == id);
+  const project = projectList.data.find(e => e.number == id);
   if (!project) {
     throw new Error('failed to fetch project data, check project id');
   }
+  return project;
+}
+
+async function handleIssueOpened(octokit, project, payload) {
   console.log(payload);
 }
 
@@ -28,36 +31,56 @@ let handler = function(token, owner, repo, id) {
     throw new Error('invalid project id');
   }
   return new Promise(async(resolve, reject) => {
-    const context = github.context;
+    const octokit = new github.GitHub(token);
+    try {
+      const project = await getProject(octokit, owner, repo, id);
+    } catch (e) {
+      reject(e);
+    }
+    context = github.context;
     switch (context.eventName) {
       case 'issues':
         if (context.payload.action == 'opened') {
           console.log('triggered by new issue')
-          console.log(context.payload)
           try {
-            handleIssueOpened(token, owner, repo, id, context.payload);
+            handleIssueOpened(octokit, project, context.payload);
             resolve("done!");
           } catch (e) {
-            reject(e.message);
+            reject(e);
           }
         }
         if (context.payload.action == 'labeled') {
           console.log('triggered by label add')
-          console.log(context.payload)
+          try {
+            handleIssueLabeled(octokit, project, context.payload);
+            resolve("done!");
+          } catch (e) {
+            reject(e);
+          }
         }
         break;
       case 'pull_request':
         console.log('triggered by PR')
-        console.log(context.payload)
+        try {
+          handlePR(octokit, project, context.payload);
+          resolve("done!");
+        } catch (e) {
+          reject(e);
+        }
         break;
       case 'release':
         console.log('triggered by release')
-        console.log(context.payload)
+        try {
+          handleRelease(octokit, project, context.payload);
+          resolve("done!");
+        } catch (e) {
+          reject(e);
+        }
         break;
       default:
         break;
     }
-    reject('handleProjectBoard.js: ' + error.message);
+    reject({message: 'unhandled trigger: ' + context.eventName});
   });
 }
 

@@ -58,7 +58,6 @@ async function getCardForIssue(octokit, project, payload, targetColumnId) {
       column_id: column.id
     });
     for (const card of cardList.data) {
-      console.log(card)
       if (card.content_url.substring(card.content_url.lastIndexOf('/')+1) == issueNum) {
         targetCard = card
         break;

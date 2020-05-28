@@ -39,7 +39,6 @@ let handler = function(token, owner, repo, id) {
     }
     context = github.context;
     switch (context.eventName) {
-      case undefined:
       case 'issues':
         if (context.payload.action == 'opened') {
           console.log('triggered by new issue')

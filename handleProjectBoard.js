@@ -14,7 +14,7 @@ async function getProject(octokit, owner, repo, id) {
 }
 
 async function getColumnForIssue(octokit, project, payload, columnByLabel) {
-  console.log(payload.issue);
+  console.log(payload);
   // var columnList = await octokit.projects.listForRepo({owner, repo});
 }
 
@@ -44,8 +44,9 @@ let handler = function(token, owner, repo, id, columnByLabelStr) {
   if (typeof(id) !== 'string' || !id.length) {
     throw new Error('invalid project id');
   }
+  var columnByLabel = {};
   if (typeof(columnByLabelStr) == 'string' && columnByLabelStr.length) {
-    var columnByLabel = JSON.parse(columnByLabelStr);
+    columnByLabel = JSON.parse(columnByLabelStr);
   }
   return new Promise(async(resolve, reject) => {
     const octokit = new github.GitHub(token);

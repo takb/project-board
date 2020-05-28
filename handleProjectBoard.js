@@ -57,6 +57,23 @@ async function handleIssueOpened(octokit, project, payload, columnByLabel) {
   });
 }
 
+async function handleIssueLabeled(octokit, project, payload, columnByLabel) {
+  var issueId = payload.issue.id;
+  if (!issueId) {
+    throw new Error('invalid context: no issue ID');
+  }
+  var columnId = await getColumnForIssue(octokit, project, payload, columnByLabel);
+  if (!columnId) {
+    throw new Error('invalid project setup: no default column');
+  }
+  console.log(`Moving issue ${issueId} to column ${columnId}`);
+  // await octokit.projects.createCard({
+  //     column_id: columnId,
+  //     content_id: issueId,
+  //     content_type: "Issue"
+  // });
+}
+
 let handler = function(token, owner, repo, id, columnByLabelStr) {
   if (typeof(token) !== 'string' || token.length != 40) {
     throw new Error('invalid token');

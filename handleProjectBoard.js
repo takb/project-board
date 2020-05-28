@@ -14,8 +14,7 @@ async function getProject(octokit, owner, repo, id) {
 }
 
 async function handleIssueOpened(octokit, project, payload) {
-  console.log(payload);
-  console.log(project);
+  console.log('target project id: '+project.id);
 }
 
 let handler = function(token, owner, repo, id) {
@@ -32,12 +31,12 @@ let handler = function(token, owner, repo, id) {
     throw new Error('invalid project id');
   }
   return new Promise(async(resolve, reject) => {
-    console.log(token)
     const octokit = new github.GitHub(token);
     try {
       const project = await getProject(octokit, owner, repo, id);
     } catch (e) {
       reject(e);
+      console.log('target project id: '+project.id);
     }
     context = github.context;
     switch (context.eventName) {
@@ -45,7 +44,7 @@ let handler = function(token, owner, repo, id) {
         if (context.payload.action == 'opened') {
           console.log('triggered by new issue')
           try {
-            handleIssueOpened(octokit, project, context.payload);
+            await handleIssueOpened(octokit, project, context.payload);
             resolve("done!");
           } catch (e) {
             reject(e);

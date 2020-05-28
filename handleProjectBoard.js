@@ -42,9 +42,9 @@ async function getColumnForIssue(octokit, project, payload, columnByLabel, defau
 }
 
 async function getCardForIssue(octokit, project, payload, targetColumnId) {
-  var issueId = payload.issue.id;
-  if (!issueId) {
-    throw new Error('invalid context: no issue ID');
+  var issueNum = payload.issue.number;
+  if (!issueNum) {
+    throw new Error('invalid context: no issue number');
   }
   var columnList = await octokit.projects.listColumns({
     project_id: project.id
@@ -59,7 +59,7 @@ async function getCardForIssue(octokit, project, payload, targetColumnId) {
     });
     for (const card of cardList.data) {
       console.log(card)
-      if (card.content_id == issueId) {
+      if (card.content_url.substring(card.content_url.lastIndexOf('/')+1) == issueNum) {
         targetCard = card
         break;
       }

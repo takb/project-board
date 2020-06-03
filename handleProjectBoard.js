@@ -107,6 +107,7 @@ async function getCardForIssueAndColumn(octokit, issueNum, columnId) {
   return 0;
 }
 
+// - Add card for new issue to the top of the project's first column OR to a specified column depending on labels set
 async function handleIssueOpened(octokit, project, payload, columnByLabel) {
   var issueId = payload.issue.id;
   if (!issueId) {
@@ -133,6 +134,9 @@ async function handleIssueOpened(octokit, project, payload, columnByLabel) {
   });
 }
 
+// - Move the card for an issue to the top of a specified column depending on labels set
+// - If card doesn't exist yet, ignore (github fires a labeled event simultaneously with
+//   the issue opened event, at which point no card has been put in the project yet)
 async function handleIssueLabeled(octokit, project, payload, columnByLabel, ignoreColumnNames) {
   var issueId = payload.issue.id;
   var issueNum = payload.issue.number;
@@ -156,7 +160,31 @@ async function handleIssueLabeled(octokit, project, payload, columnByLabel, igno
   });
 }
 
-let handler = function(token, owner, repo, id, columnByLabelStr, ignoreColumnNamesStr) {
+async function handleIssueClosed(octokit, project, payload) {
+  // TODO: implement.
+  // - add label
+}
+
+async function handlePullRequestOpened(octokit, project, payload) {
+  // TODO: implement.
+  // - add card to project first column
+  console.log(payload);
+}
+
+async function handlePullRequestClosed(octokit, project, payload) {
+  // TODO: implement.
+  // - add label
+}
+
+async function handleReleaseCreated(octokit, project, payload) {
+  // TODO: implement.
+  // - remove all 'awaiting release' tags from closed isues
+  // - close and remove 'awaiting release' tags from all open tags in 'awaiting release' column
+  // - archive all cards in 'last release' column
+  // - move all cards in 'awaiting release' column to 'last release' column
+}
+
+let handler = function(token, owner, repo, id, columnByLabelStr, ignoreColumnNamesStr, mockOctokit = false, mockContext = false) {
   if (typeof(token) !== 'string' || token.length != 40) {
     throw new Error('invalid token');
   }
@@ -178,14 +206,13 @@ let handler = function(token, owner, repo, id, columnByLabelStr, ignoreColumnNam
     ignoreColumnNames = ignoreColumnNamesStr.split(',')
   }
   return new Promise(async(resolve, reject) => {
-    const octokit = new github.GitHub(token);
+    const octokit = mockOctokit || new github.GitHub(token);
     try {
       var project = await getProject(octokit, owner, repo, id);
     } catch (e) {
       reject(e);
     }
-    const context = github.context;
-    // const context = {eventName: 'issues', payload: {action: 'opened', issue: {id: 123}}};
+    const context = mockContext || github.context;
     switch (context.eventName) {
       case 'issues':
         if (context.payload.action == 'opened') {
@@ -206,23 +233,45 @@ let handler = function(token, owner, repo, id, columnByLabelStr, ignoreColumnNam
             reject(e);
           }
         }
+        if (context.payload.action == 'closed') {
+          console.log('triggered by label close')
+          try {
+            handleIssueClosed(octokit, project, context.payload);
+            resolve("done!");
+          } catch (e) {
+            reject(e);
+          }
+        }
         break;
       case 'pull_request':
-        console.log('triggered by PR')
-        try {
-          handlePR(octokit, project, context.payload);
-          resolve("done!");
-        } catch (e) {
-          reject(e);
+        if (context.payload.action == 'opened') {
+          console.log('triggered by new pull request')
+          try {
+            handlePullRequestOpened(octokit, project, context.payload);
+            resolve("done!");
+          } catch (e) {
+            reject(e);
+          }
+        }
+        if (context.payload.action == 'closed') {
+          console.log('triggered by new pull request')
+          try {
+            handlePullRequestClosed(octokit, project, context.payload);
+            resolve("done!");
+          } catch (e) {
+            reject(e);
+          }
         }
         break;
       case 'release':
-        console.log('triggered by release')
-        try {
-          handleRelease(octokit, project, context.payload);
-          resolve("done!");
-        } catch (e) {
-          reject(e);
+        if (context.payload.action == 'created') {
+          console.log('triggered by new release')
+          try {
+            handleReleaseCreated(octokit, project, context.payload);
+            resolve("done!");
+          } catch (e) {
+            reject(e);
+          }
         }
         break;
       default:

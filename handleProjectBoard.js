@@ -170,26 +170,23 @@ async function handleIssueLabeled(octokit, project, payload, columnByLabel, igno
   });
 }
 
-// - add label if
+// - add label if set in config
 async function handleIssueClosed(octokit, owner, repo, payload, labelOnClose) {
-  var issueId = payload.issue.id;
   var issueNum = payload.issue.number;
-  if (!issueId) {
+  if (!issueNum) {
     throw new Error('invalid context: no issue ID');
   }
   if (!labelOnClose) {
     console.log(`No labelOnClose set, nothing to do`);
     return;
   }
-  var label = await octokit.issues.getLabel({
+  console.log(`Adding label '${label.data.name}' to closed issue ${issueNum}`);
+  octokit.issues.addLabels({
     owner,
     repo,
-    name: labelOnClose,
+    issue_number: issueNum,
+    labels: labelOnClose,
   });
-  console.log(label);
-  console.log(payload.issue.id);
-  console.log(`Adding label ${label} to closed issue ${issueNum}`);
-
 }
 
 // - add card to project first column
@@ -292,7 +289,7 @@ let handler = function(token, owner, repo, id, columnByLabelStr, ignoreColumnNam
         if (context.payload.action == 'closed') {
           console.log('triggered by new pull request')
           try {
-            handlePullRequestClosed(octokit, project, context.payload);
+            handleIssueClosed(octokit, owner, repo, context.payload, labelOnClose);
             resolve("done!");
           } catch (e) {
             reject(e);

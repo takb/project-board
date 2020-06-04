@@ -185,7 +185,7 @@ async function handleIssueClosed(octokit, owner, repo, payload, labelOnClose) {
     owner,
     repo,
     issue_number: issueNum,
-    labels: labelOnClose,
+    label: labelOnClose,
   });
 }
 

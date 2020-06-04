@@ -168,7 +168,7 @@ async function handleIssueClosed(octokit, project, payload) {
 async function handlePullRequestOpened(octokit, project, payload) {
   // TODO: implement.
   // - add card to project first column
-  console.log(payload.pull_request._links.issue);
+  console.log(payload.number);
 }
 
 async function handlePullRequestClosed(octokit, project, payload) {

@@ -181,7 +181,7 @@ async function handleIssueClosed(octokit, owner, repo, payload, labelOnClose) {
     return;
   }
   console.log(`Adding label '${label.data.name}' to closed issue ${issueNum}`);
-  octokit.issues.addLabels({
+  await octokit.issues.addLabels({
     owner,
     repo,
     issue_number: issueNum,

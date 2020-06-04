@@ -10,9 +10,10 @@ async function run() {
     const columnByLabelStr = core.getInput('columnbylabel');
     const ignoreColumnNamesStr = core.getInput('ignorecolumnnames');
     const labelOnClose = core.getInput('labelonclose');
+    const removeOnClose = core.getInput('removeonclose');
     const start = new Date();
     core.debug('calling handler');
-    await handler(token, owner, repo, project, columnByLabelStr, ignoreColumnNamesStr, labelOnClose);
+    await handler(token, owner, repo, project, columnByLabelStr, ignoreColumnNamesStr, labelOnClose, removeOnClose);
     var delta = Math.abs(new Date() - start);
     core.debug(`handler returned in ${delta} ms`);
   }

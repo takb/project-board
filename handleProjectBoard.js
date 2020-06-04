@@ -86,6 +86,45 @@ async function getCardForIssue(octokit, project, payload, targetColumnId, ignore
   return targetCard.id;
 }
 
+async function archiveCardIfInColumnName(octokit, issueNum, columnName) {
+  if (!issueNum) {
+    throw new Error('invalid call: no issue number');
+  }
+  if (!columnName) {
+    throw new Error('invalid call: no column name');
+  }
+  var columnList = await octokit.projects.listColumns({
+    project_id: project.id
+  });
+  if (!columnList.data.length) {
+    throw new Error('error fetching columns, check if project board is set up properly');
+  }
+  var columnId = 0;
+  for (const column of columnList.data) {
+    if (column.name == columnName) {
+      columnId = column.id;
+      break;
+    }
+  }
+  if (!columnId) {
+    console.log(`Column '${columnName}' not found, check configuration`);
+    return false;
+  }
+  var cardList = await octokit.projects.listCards({
+    column_id: columnId
+  });
+  for (const card of cardList.data) {
+    if (card.content_url.substring(card.content_url.lastIndexOf('/')+1) == issueNum) {
+      await octokit.projects.updateCard({
+        card_id: card.id,
+        archived: true,
+      });
+      return true;
+    }
+  }
+  return false;
+}
+
 async function getCardForIssueAndColumn(octokit, issueNum, columnId) {
   if (!issueNum) {
     throw new Error('invalid call: no issue number');
@@ -170,11 +209,20 @@ async function handleIssueLabeled(octokit, project, payload, columnByLabel, igno
   });
 }
 
+// - remove from project if card is in specified column
 // - add label if set in config
-async function handleIssueClosed(octokit, owner, repo, payload, labelOnClose) {
+async function handleIssueClosed(octokit, owner, repo, project, payload, labelOnClose, removeOnClose) {
   var issueNum = payload.issue.number;
   if (!issueNum) {
     throw new Error('invalid context: no issue ID');
+  }
+  if (removeOnClose) {
+    console.log(`Checking if issue #${issueNum} should be removed`);
+    var removed = await archiveCardIfInColumnName(octokit, issueNum, removeOnClose);
+    if (removed) {
+      console.log(`Removed #${issueNum} because it still was in column '${removeOnClose}'`);
+      return;
+    }
   }
   if (!labelOnClose) {
     console.log(`No labelOnClose set, nothing to do`);
@@ -217,7 +265,7 @@ async function handleReleaseCreated(octokit, project, payload) {
   // - move all cards in 'awaiting release' column to 'last release' column
 }
 
-let handler = function(token, owner, repo, id, columnByLabelStr, ignoreColumnNamesStr, labelOnClose = "", mockOctokit = false, mockContext = false) {
+let handler = function(token, owner, repo, id, columnByLabelStr, ignoreColumnNamesStr, labelOnClose = "", removeOnClose = "", mockOctokit = false, mockContext = false) {
   if (typeof(token) !== 'string' || token.length != 40) {
     throw new Error('invalid token');
   }
@@ -269,7 +317,7 @@ let handler = function(token, owner, repo, id, columnByLabelStr, ignoreColumnNam
         if (context.payload.action == 'closed') {
           console.log('triggered by closed issue')
           try {
-            handleIssueClosed(octokit, owner, repo, context.payload, labelOnClose);
+            handleIssueClosed(octokit, owner, repo, project, context.payload, labelOnClose, removeOnClose);
             resolve("done!");
           } catch (e) {
             reject(e);

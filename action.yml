@@ -22,6 +22,9 @@ inputs:
   labelonclose:
     description: 'Label to add when issues and pull requests are closed'
     required: false
+  removeonclose:
+    description: 'Column out of which issues should be removed when closed'
+    required: false
 runs:
   using: 'node12'
   main: 'index.js'

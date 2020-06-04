@@ -178,7 +178,7 @@ async function handleIssueClosed(octokit, project, payload) {
 
 // - add card to project first column
 async function handlePullRequestOpened(octokit, project, payload) {
-  var columnId = getColumnForProject(octokit, project);
+  var columnId = await getColumnForProject(octokit, project);
   await octokit.projects.createCard({
     column_id: columnId,
     content_id: payload.number,

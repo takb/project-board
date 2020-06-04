@@ -107,6 +107,16 @@ async function getCardForIssueAndColumn(octokit, issueNum, columnId) {
   return 0;
 }
 
+async function getColumnForProject(octokit, project) {
+  var columnList = await octokit.projects.listColumns({
+    project_id: project.id
+  });
+  if (!columnList.data.length) {
+    throw new Error('error fetching columns, check if project board is set up properly');
+  }
+  return columnList.data[0].id;
+}
+
 // - Add card for new issue to the top of the project's first column OR to a specified column depending on labels set
 async function handleIssueOpened(octokit, project, payload, columnByLabel) {
   var issueId = payload.issue.id;
@@ -165,10 +175,14 @@ async function handleIssueClosed(octokit, project, payload) {
   // - add label
 }
 
+// - add card to project first column
 async function handlePullRequestOpened(octokit, project, payload) {
-  // TODO: implement.
-  // - add card to project first column
-  console.log(payload.number);
+  var columnId = getColumnForProject(octokit, project);
+  await octokit.projects.createCard({
+    column_id: columnId,
+    content_id: payload.number,
+    content_type: "PullRequest"
+  });
 }
 
 async function handlePullRequestClosed(octokit, project, payload) {

@@ -86,7 +86,7 @@ async function getCardForIssue(octokit, project, payload, targetColumnId, ignore
   return targetCard.id;
 }
 
-async function archiveCardIfInColumnName(octokit, issueNum, columnName) {
+async function archiveCardIfInColumnName(octokit, project, issueNum, columnName) {
   if (!issueNum) {
     throw new Error('invalid call: no issue number');
   }
@@ -123,6 +123,58 @@ async function archiveCardIfInColumnName(octokit, issueNum, columnName) {
     }
   }
   return false;
+}
+
+async function moveCardToColumnName(octokit, project, issueNum, columnName) {
+  if (!issueNum) {
+    throw new Error('invalid call: no issue number');
+  }
+  if (!columnName) {
+    throw new Error('invalid call: no column name');
+  }
+  var columnList = await octokit.projects.listColumns({
+    project_id: project.id
+  });
+  if (!columnList.data.length) {
+    throw new Error('error fetching columns, check if project board is set up properly');
+  }
+  var columnId = 0;
+  for (const column of columnList.data) {
+    if (column.name == columnName) {
+      columnId = column.id;
+      break;
+    }
+  }
+  if (!columnId) {
+    console.log(`Column '${columnName}' not found, check configuration`);
+    return;
+  }
+  var targetCard;
+  for (const column of columnList.data) {
+    if (column.name == columnName) {
+      continue;
+    }
+    var cardList = await octokit.projects.listCards({
+      column_id: column.id
+    });
+    for (const card of cardList.data) {
+      if (card.content_url.substring(card.content_url.lastIndexOf('/')+1) == issueNum) {
+        targetCard = card;
+        break;
+      }
+    }
+    if (targetCard) {
+      break;
+    }
+  }
+  if (targetCard) {
+    console.log(`Moving card ${targetCard.id} to column ${columnId}`);
+    await octokit.projects.moveCard({
+      card_id: targetCard.id,
+      column_id: columnId,
+      position: "top"
+    });
+  }
 }
 
 async function getCardForIssueAndColumn(octokit, issueNum, columnId) {
@@ -198,43 +250,47 @@ async function handleIssueLabeled(octokit, project, payload, columnByLabel, igno
     return;
   }
   var cardId = await getCardForIssue(octokit, project, payload, columnId, ignoreColumnNames);
-  if (!cardId) {
-    return;
+  if (cardId) {
+    console.log(`Moving card ${cardId} to column ${columnId}`);
+    await octokit.projects.moveCard({
+      card_id: cardId,
+      column_id: columnId,
+      position: "top"
+    });
   }
-  console.log(`Moving card ${cardId} to column ${columnId}`);
-  await octokit.projects.moveCard({
-    card_id: cardId,
-    column_id: columnId,
-    position: "top"
-  });
 }
 
 // - remove from project if card is in specified column
 // - add label if set in config
-async function handleIssueClosed(octokit, owner, repo, project, payload, labelOnClose, removeOnClose) {
+async function handleIssueClosed(octokit, owner, repo, project, payload, labelOnClose, moveOnClose, removeOnClose) {
   var issueNum = payload.issue.number;
   if (!issueNum) {
-    throw new Error('invalid context: no issue ID');
+    throw new Error('invalid context: no issue number');
   }
   if (removeOnClose) {
     console.log(`Checking if issue #${issueNum} should be removed`);
-    var removed = await archiveCardIfInColumnName(octokit, issueNum, removeOnClose);
+    var removed = await archiveCardIfInColumnName(octokit, project, issueNum, removeOnClose);
     if (removed) {
       console.log(`Removed #${issueNum} because it still was in column '${removeOnClose}'`);
       return;
     }
   }
-  if (!labelOnClose) {
-    console.log(`No labelOnClose set, nothing to do`);
-    return;
+  if (moveOnClose) {
+    console.log(`Checking if issue #${issueNum} should be moved`);
+    var moved = await moveCardToColumnName(octokit, project, issueNum, moveOnClose);
+    if (moved) {
+      console.log(`Moved #${issueNum} to column '${moveOnClose}'`);
+    }
   }
-  console.log(`Adding label '${labelOnClose}' to closed issue ${issueNum}`);
-  await octokit.issues.addLabels({
-    owner,
-    repo,
-    issue_number: issueNum,
-    labels: [labelOnClose],
-  });
+  if (labelOnClose) {
+    console.log(`Adding label '${labelOnClose}' to closed issue ${issueNum}`);
+    await octokit.issues.addLabels({
+      owner,
+      repo,
+      issue_number: issueNum,
+      labels: [labelOnClose],
+    });
+  }
 }
 
 // - add card to project first column

@@ -184,7 +184,7 @@ async function handleIssueClosed(octokit, owner, repo, payload, labelOnClose) {
   var label = await octokit.issues.getLabel({
     owner,
     repo,
-    labelOnClose,
+    name: labelOnClose,
   });
   console.log(label);
   console.log(payload.issue.id);

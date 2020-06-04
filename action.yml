@@ -19,6 +19,9 @@ inputs:
   ignorecolumnnames:
     description: 'Columns to ignore when looking for a labeled issue card, comma separated: "Assigned,In progress,Review,Awaiting release,Last release"'
     required: false
+  labelonclose:
+    description: 'Label to add when issues and pull requests are closed'
+    required: false
 runs:
   using: 'node12'
   main: 'index.js'

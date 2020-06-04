@@ -170,9 +170,26 @@ async function handleIssueLabeled(octokit, project, payload, columnByLabel, igno
   });
 }
 
-async function handleIssueClosed(octokit, project, payload) {
-  // TODO: implement.
-  // - add label
+// - add label if
+async function handleIssueClosed(octokit, owner, repo, payload, labelOnClose) {
+  var issueId = payload.issue.id;
+  var issueNum = payload.issue.number;
+  if (!issueId) {
+    throw new Error('invalid context: no issue ID');
+  }
+  if (!labelOnClose) {
+    console.log(`No labelOnClose set, nothing to do`);
+    return;
+  }
+  var label = await octokit.issues.getLabel({
+    owner,
+    repo,
+    labelOnClose,
+  });
+  console.log(label);
+  console.log(payload.issue.id);
+  console.log(`Adding label ${label} to closed issue ${issueNum}`);
+
 }
 
 // - add card to project first column
@@ -182,6 +199,7 @@ async function handlePullRequestOpened(octokit, project, payload) {
     throw new Error('invalid context: no pull request ID');
   }
   var columnId = await getColumnForProject(octokit, project);
+  console.log(`Adding PR ${prId} to column ${columnId}`);
   await octokit.projects.createCard({
     column_id: columnId,
     content_id: prId,
@@ -202,7 +220,7 @@ async function handleReleaseCreated(octokit, project, payload) {
   // - move all cards in 'awaiting release' column to 'last release' column
 }
 
-let handler = function(token, owner, repo, id, columnByLabelStr, ignoreColumnNamesStr, mockOctokit = false, mockContext = false) {
+let handler = function(token, owner, repo, id, columnByLabelStr, ignoreColumnNamesStr, labelOnClose = "", mockOctokit = false, mockContext = false) {
   if (typeof(token) !== 'string' || token.length != 40) {
     throw new Error('invalid token');
   }
@@ -252,9 +270,9 @@ let handler = function(token, owner, repo, id, columnByLabelStr, ignoreColumnNam
           }
         }
         if (context.payload.action == 'closed') {
-          console.log('triggered by label close')
+          console.log('triggered by closed issue')
           try {
-            handleIssueClosed(octokit, project, context.payload);
+            handleIssueClosed(octokit, owner, repo, context.payload, labelOnClose);
             resolve("done!");
           } catch (e) {
             reject(e);

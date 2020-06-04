@@ -9,9 +9,10 @@ async function run() {
     const project = core.getInput('project');
     const columnByLabelStr = core.getInput('columnbylabel');
     const ignoreColumnNamesStr = core.getInput('ignorecolumnnames');
+    const labelOnClose = core.getInput('labelonclose');
     const start = new Date();
     core.debug('calling handler');
-    await handler(token, owner, repo, project, columnByLabelStr, ignoreColumnNamesStr);
+    await handler(token, owner, repo, project, columnByLabelStr, ignoreColumnNamesStr, labelOnClose);
     var delta = Math.abs(new Date() - start);
     core.debug(`handler returned in ${delta} ms`);
   }

@@ -321,7 +321,7 @@ async function handleReleaseCreated(octokit, project, payload) {
   // - move all cards in 'awaiting release' column to 'last release' column
 }
 
-let handler = function(token, owner, repo, id, columnByLabelStr, ignoreColumnNamesStr, labelOnClose = "", removeOnClose = "", mockOctokit = false, mockContext = false) {
+let handler = function(token, owner, repo, id, columnByLabelStr, ignoreColumnNamesStr, labelOnClose = "", removeOnClose = "", moveOnClose = "", mockOctokit = false, mockContext = false) {
   if (typeof(token) !== 'string' || token.length != 40) {
     throw new Error('invalid token');
   }
@@ -373,7 +373,7 @@ let handler = function(token, owner, repo, id, columnByLabelStr, ignoreColumnNam
         if (context.payload.action == 'closed') {
           console.log('triggered by closed issue')
           try {
-            handleIssueClosed(octokit, owner, repo, project, context.payload, labelOnClose, removeOnClose);
+            handleIssueClosed(octokit, owner, repo, project, context.payload, labelOnClose, removeOnClose, moveOnClose);
             resolve("done!");
           } catch (e) {
             reject(e);
@@ -393,7 +393,7 @@ let handler = function(token, owner, repo, id, columnByLabelStr, ignoreColumnNam
         if (context.payload.action == 'closed') {
           console.log('triggered by new pull request')
           try {
-            handleIssueClosed(octokit, owner, repo, context.payload, labelOnClose);
+            handleIssueClosed(octokit, owner, repo, context.payload, labelOnClose, false, moveOnClose);
             resolve("done!");
           } catch (e) {
             reject(e);

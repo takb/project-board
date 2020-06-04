@@ -107,19 +107,6 @@ async function getCardForIssueAndColumn(octokit, issueNum, columnId) {
   return 0;
 }
 
-async function getIdForPullRequest(octokit, payload) {
-
-console.log(payload);
-  // var columnList = await octokit.projects.listColumns({
-  //   project_id: project.id
-  // });
-  // if (!columnList.data.length) {
-  //   throw new Error('error fetching columns, check if project board is set up properly');
-  // }
-  // console.log(columnList);
-  // return columnList.data[0].id;
-}
-
 async function getColumnForProject(octokit, project) {
   var columnList = await octokit.projects.listColumns({
     project_id: project.id
@@ -190,13 +177,16 @@ async function handleIssueClosed(octokit, project, payload) {
 
 // - add card to project first column
 async function handlePullRequestOpened(octokit, project, payload) {
-  var prId = await getIdForPullRequest(octokit, payload);
+  var prId = payload.pull_request.id;
+  if (!prId) {
+    throw new Error('invalid context: no pull request ID');
+  }
   var columnId = await getColumnForProject(octokit, project);
-  // await octokit.projects.createCard({
-  //   column_id: columnId,
-  //   content_id: prId,
-  //   content_type: "PullRequest"
-  // });
+  await octokit.projects.createCard({
+    column_id: columnId,
+    content_id: prId,
+    content_type: "PullRequest"
+  });
 }
 
 async function handlePullRequestClosed(octokit, project, payload) {

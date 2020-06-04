@@ -114,6 +114,7 @@ async function getColumnForProject(octokit, project) {
   if (!columnList.data.length) {
     throw new Error('error fetching columns, check if project board is set up properly');
   }
+  console.log(columnList);
   return columnList.data[0].id;
 }
 
